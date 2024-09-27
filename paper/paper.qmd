@@ -1,0 +1,172 @@
+---
+title: "An Analysis of Decedent Patterns in Toronto's Shelter System (2007-2024)"
+author: 
+  - Zhibin Huang
+date: today
+date-format: long
+abstract: "Mortality of residents in shelters in Toronto between 2007 and 2025 is analyzed to detect outstanding time trends as well as differences by gender. The data shows a significant increase in deaths, peaking around 2020, mainly among male residents of shelters. Seasonal fluctuations in the mortality rates suggest that variations may be due to extrinsic factors, like heat waves or public health events. Since most life-ending situations in shelters occur at the highest risk, this research focuses on the urgency of targeted interventions and health care improvement to reduce shelter residents' fatality rate during high-risk periods."
+format: pdf
+number-sections: true
+bibliography: ref.bib
+toc: true
+---
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+#| echo: false
+#| 
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+# Load knitr package for kable
+library(knitr)
+
+# Load your data
+data <- read.csv("02_clean_data.csv")
+
+# Convert Month-Year to a proper date format and create Quarter variable
+data$Month_Year <- as.Date(paste(data$Year, data$Month, "01", sep = "-"), "%Y-%b-%d")
+data$Quarter <- quarters(data$Month_Year)
+```
+
+
+
+# Introduction
+
+There are many examples of the spreading problem of homelessness in large cities lately because it has social and health consequences. Unsheltered homelessness, when a person is sleeping in areas not intended for habitation by a human, as cars, parks, sidewalks, or abandoned buildings, has experienced a surging increase in its occurrences over the past years in cities around the world (@richards2023unsheltered). The death rate among those living in homeless shelters is one of the most urgent problems, as it is a reflection of larger systemic problems such poor access to safe housing, addiction treatment, and healthcare. According to a study, the age of homeless individuals who died were, on average, 17 years lower than unexposed people @richard2024disparities. The monitoring and documentation of shelter resident deaths in Toronto has been an important step in determining the scope of the issue and developing policy to deal with it. People experiencing homelessness face higher morbidity and mortality (@schneider2021retrospective). This is despite a full analysis of the trends and variables that affect mortality rates in shelter users as based on gender and time cycles.
+The present study will fill the gap by looking at death data for shelter residents of Toronto from 2007 to date. To better understand how and when the death rates rose, the study considers both gender differences and time trends as well as counts of dead people by quarter. The study discovered significant differences in death rates between genders and over time, with noticeable increases in recent years, using data visualization and statistical tools. Finding trends that might direct focused measures to lower mortality among shelter occupants is made possible by this approach. The results assist policymakers in allocating resources more wisely by providing insights into public health priorities.
+The following section of the study presents the information regarding the dataset and results of the analysis and section 3 will discuss the limitations and will provide suggestions or recommendations for future research.
+
+# Data
+
+The Open Data Toronto dataset, which tracks shelter occupants' deaths starting in 2007, has been used for this study. The number of decedents, their gender (male, female, and, if available, transgender, non-binary, or two-spirit), and the month and year of death are among the factors that are included. This dataset provides information about the demographic patterns and temporal trends of mortality among Toronto shelter residents. A new variable "Quarter" has been constructed or added to the data using the month year variable.
+
+# Results
+
+```{r, fig.pos="H"}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: fig-norm
+#| fig-cap: "Normal distribution plot for Total decedents"
+ 
+# 1. Normal distribution plot for Total decedents
+ggplot(data, aes(x = Total.decedents)) +
+  geom_histogram(aes(y = ..density..), bins = 20, fill = "blue", alpha = 0.6) +
+  geom_density(color = "red", size = 1) +
+  labs(title = "Normal Distribution of Total Decedents", x = "Total Decedents", y = "Density") +
+  theme_bw()  # This sets a white background
+
+```
+
+
+@fig-norm shows the frequency distribution of Total Decedents overlaid with a red normal distribution curve. From the chart it can be seen that, few deaths occur in most months, as presented by the majority of data points, which cluster around 1–5 deaths. The right skew of the histogram suggests that the distribution of the data is not really normal since it shows months with sporadic, significantly higher death rates that are not well represented by the normal distribution curve. The descriptive statistics corroborate the uneven distribution of the data, reflecting this skewness, with the mean slightly above the median. The lengthy tail that reaches 20 denotes rare but greater mortality tolls in particular months.
+
+
+```{r, fig.pos="H"}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: tbl-sumarry
+#| tbl-cap: "Descriptive statistics table"
+#| 
+# Descriptive statistics table
+descriptive_stats <- data %>%
+  summarise(
+    Mean = mean(Total.decedents, na.rm = TRUE),
+    Median = median(Total.decedents, na.rm = TRUE),
+    SD = sd(Total.decedents, na.rm = TRUE),
+    Min = min(Total.decedents, na.rm = TRUE),
+    Max = max(Total.decedents, na.rm = TRUE)
+  )
+
+# Display the descriptive statistics using kable()
+kable(descriptive_stats, format = "markdown", col.names = c("Mean", "Median", "Standard Deviation", "Minimum", "Maximum"))
+```
+
+@tbl-sumarry shows the summary statistics for the decedent variable where it can be seen that the mean is roughly 3.83 and the median is 3, which suggests a small skewness because the mean is higher than the median in the descriptive statistics for the total number of decedents per month. The monthly deaths exhibit moderate fluctuation, as indicated by the standard deviation of approximately 3.59. 
+
+```{r, fig.pos="H"}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: fig-timseries
+#| fig-cap: "Time series plot with Total decedents"
+#| 
+# 3. Time series plot with Total decedents
+# Simple line plot with ggplot
+ggplot(data, aes(x = Month_Year, y = Total.decedents)) +
+  geom_line(color = "blue") +
+  labs(title = "Time Series of Total Decedents", x = "Time", y = "Total Decedents") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+@fig-timseries shows the number of deaths per month over a period of years is shown in this time series graph. It exhibits notable fluctuations as well as some discernible cyclical trends. Notable peaks in the number of deaths occur in some years, suggesting that some months or seasons may have greater death rates. This may indicate that external factors, such as harsh winters or public health emergencies, are impacting the mortality rates of shelter occupants.
+
+```{r, fig.pos="H"}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: fig-quarterseries
+#| fig-cap: "Overall quarter-wise analysis visualization and table"
+#| 
+# 4. Overall quarter-wise analysis visualization and table
+
+# Aggregate total decedents by each quarter across all years
+quarterwise_data <- data %>%
+  group_by(Quarter) %>%
+  summarise(Total_decedents = sum(Total.decedents, na.rm = TRUE))
+
+# Bar plot for total decedents by Quarter across all years
+ggplot(quarterwise_data, aes(x = Quarter, y = Total_decedents, fill = Quarter)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("Q1" = "steelblue", "Q2" = "coral", "Q3" = "chocolate1", "Q4" = "purple")) +
+  labs(title = "Total Decedents by Quarter (Across All Years)", x = "Quarter", y = "Total Decedents") +
+  theme_minimal()
+
+```
+
+The total number of deaths for all years combined is compared by quarter in @fig-quarterseries. From the chart it can be seen that, with a small increase in the third quarter (Q3) and the largest number in the fourth quarter (Q4), the deaths seem to be spread rather evenly over the four quarters. This pattern may indicate quarterly factors impacting shelter inhabitants or seasonal influences on mortality rates.
+
+```{r, fig.pos="H"}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: fig-genderwise
+#| fig-cap: "Gender-wise visualization"
+
+
+# 5. Gender-wise visualization
+# Aggregate data by year and gender
+yearwise_gender_data <- data %>%
+  group_by(Year) %>%
+  summarise(Male = sum(Male, na.rm = TRUE),
+            Female = sum(Female, na.rm = TRUE))
+
+# Bar plot for year-wise male and female decedents
+ggplot(yearwise_gender_data, aes(x = Year)) +
+  geom_bar(aes(y = Male, fill = "Male"), stat = "identity", position = "dodge") +
+  geom_bar(aes(y = Female, fill = "Female"), stat = "identity", position = "dodge") +
+  labs(title = "Year-wise Gender-wise Decedents", x = "Year", y = "Number of Decedents", fill = "Gender") +
+  scale_fill_manual(values = c("Male" = "steelblue", "Female" = "darkorange")) +
+  theme_minimal()
+
+```
+
+@fig-genderwise shows the total number of deaths among shelter residents by gender from 2010 to about 2025. Both male and female death rates are typically on the rise, with a notable uptick around 2020. Notably, over the years, the number of male deaths has continuously exceeded that of female deaths. The sudden rise in mortality for both genders around 2020 may point to an outside crisis or a shift in circumstances that is having an impact on the number of people using shelters.  
+
+# Discussion
+
+## Limitations and Recommendations
+
+An important limitation of the current analysis is that potential variables such as age, cause of Decedents and location are generally absent and could offer more insight into some of these variables that contribute to a resident's mortality. Furthermore, the comprehensive demographic analysis which cannot be done due to the missing data on gender categories such as transgender/non-binary. To gain further insight into causes of death, future research would focus on incorporating much more specific data: environmental and health-related variables. Other recommendations to reduce fatalities among shelter residents include improved methods for data collection and additional public health services at times when deaths are more common: seasonal peaks.
+
+\newpage
+
+# References
+
